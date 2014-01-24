@@ -36,6 +36,10 @@ def examine(ex):
 def take(inv):
     if "rock" in inv:
         print "You have a rock now.\n"
+        item_doc = open("ZorkInv.txt", 'a')
+        item_doc.write(inv)
+        item_doc.write('\n')
+        item_doc.close()
         main()
     else:
         print "I don't see that here.\n"
@@ -43,20 +47,45 @@ def take(inv):
 
 #write a command to navigate the world. the game needs to remember where you are.
 def move(loc):
+    with open("ZorkMap.txt", 'r+') as xy:
+        pos = [line.strip() for line in xy]
+        pos = map(int, pos)
     if "north" in loc:
         print "You walk north.\n"
-        main()
+        pos[1] += 1
+    elif "south" in loc:
+        print "You walk south.\n"
+        pos[1] -= 1
+    elif "east" in loc:
+        print "You walk east.\n"
+        pos[0] += 1
+    elif "west" in loc:
+        print "You walk west.\n"
+        pos[0] -= 1
+    elif "home" in loc:
+        print "Okay, back where we started.\n"
+        pos[0] = 0
+        pos[1] = 0
     else:
-        print "Cannot move there.\n"
+        print "I don't think you can move there.\n"
         main()
+    xy = open("ZorkMap.txt", 'w')
+    pos = map(str, pos)
+    for posit in pos:
+        xy.write(posit + '\n')
+    xy.close()
+    main()
 
-def save():
-    pass
+#save and quit
+def save(s):
+    if "save" in s:
+        print "Come back soon!"
+        exit(0)
 
 def main():
     while True:
         prompt = '> '
-        next = raw_input(prompt)
+        next = raw_input(prompt).lower()
 
         if next[0:8] == "remember":
             remember(next[9:])
@@ -66,6 +95,8 @@ def main():
             take(next[5:])
         elif next[0:4] == "move":
             move(next[5:])
+        elif next[0:4] == "save":
+            save(next)
         else:
             print "I don't know what that means!\n"
             main()
