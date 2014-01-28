@@ -10,6 +10,34 @@ print "You can acquire items with the word take.\n"
 print "It's time to start your adventure! See if you can make it out of the cave alive, with your sanity intact!\n"
 print "What would you like to do first?\n"
 
+#at the moment I am "saving" the game on every action. I should set up temporal variables that hold position and inventory and only get saved back to text file on the save() command. exit() command would quit without saving. this might speed things up as I should not have to open the txt files every single time the move() command is called.
+
+#global variables: pos (current position), items (current items), corridor (static map grid), spidey/snakey ('1' or '0' indicating boss status)
+with open("ZorkMap.txt", 'r') as xy:
+    pos = [line.strip() for line in xy]
+    pos = map(int, pos)
+
+with open("ZorkInv.txt", 'r') as inv:
+    items = [line.strip() for line in inv]
+
+corridor = []
+with open("ZorkGrid.txt", 'r') as grid:
+    for line in grid:
+        corridor.append(line.split())
+        
+bosstxt = []
+with open("ZorkBoss.txt", 'r') as boss:
+    for line in boss:
+        #if line.startswith("spider"):
+        bosstxt.append(line.split())
+for i in bosstxt:
+    if i[0] == 'spider:':
+        spidey = i[1]
+    elif i[0] == 'snake:':
+        snakey = i[1]
+    else:
+        pass
+
 #the remember command. looks at the string after the word 'remember' and tries to pick out keywords.
 def remember(memory):
     if "village" in memory:
@@ -24,84 +52,80 @@ def examine(ex):
     else:
         print "I don't know what that is.\n"
 
-#write a command to take objects. create new document - or class? - that stores and remembers your inventory.
+#write a command to take objects. stored in ZorkInv.txt
 def take(inv):
-    with open("ZorkMap.txt", 'r+') as xy:
-        pos = [line.strip() for line in xy]
-        pos = map(int, pos)
+    global pos
+    global items
     if "rock" in inv and pos == [0, 1]:
         print "You have a rock now.\n"
-        item_doc = open("ZorkInv.txt", 'a')
-        item_doc.write(inv)
-        item_doc.write('\n')
-        item_doc.close()
+        items.append(inv)
     elif "torch" in inv and pos == [-1, 0]:
         print "You have a torch now.\n"
-        item_doc = open("ZorkInv.txt", 'a')
-        item_doc.write(inv)
-        item_doc.write('\n')
-        item_doc.close()
+        items.append(inv)
     elif "sword" in inv and pos == [0, 2]:
         print "You have a sword now.\n"
-        item_doc = open("ZorkInv.txt", 'a')
-        item_doc.write(inv)
-        item_doc.write('\n')
-        item_doc.close()
+        items.append(inv)
     elif "cave troll" in inv:
         print "You have a cave troll.\n"
-        item_doc = open("ZorkInv.txt", 'a')
-        item_doc.write(inv)
-        item_doc.write('\n')
-        item_doc.close()
+        items.append(inv)
     else:
         print "I don't see that here.\n"
 
-#write a command to navigate the world. the game needs to remember where you are.
+#write a command to navigate the world. position stored in ZorkMap.txt
 def move(loc):
-    with open("ZorkMap.txt", 'r+') as xy:
-        pos = [line.strip() for line in xy]
-        pos = map(int, pos)
+    global pos
+    global corridor
+    global spidey
+    global snakey
+    #check matrix of game map to let move function know if a move is legal or not
     if "north" in loc:
-        print "You walk north.\n"
         pos[1] += 1
+        if corridor[(4-pos[1])][(2+pos[0])] == "1":
+            print "You walk north.\n"
+        else:
+            print corridor[(4-pos[1])][(2+pos[0])]
+            print "You can't go that way."
+            pos[1] -= 1
     elif "south" in loc:
-        print "You walk south.\n"
         pos[1] -= 1
+        if corridor[(4-pos[1])][(2+pos[0])] == "1":
+            print "You walk south.\n"
+        else:
+            print "You can't go that way."
+            pos[1] += 1
     elif "east" in loc:
-        print "You walk east.\n"
         pos[0] += 1
+        if corridor[(4-pos[1])][(2+pos[0])] == "1":
+            print "You walk east.\n"
+        else:
+            print "You can't go that way."
+            pos[0] -= 1
     elif "west" in loc:
-        print "You walk west.\n"
         pos[0] -= 1
+        if corridor[(4-pos[1])][(2+pos[0])] == "1":
+            print "You walk west.\n"
+        else:
+            print "You can't go that way."
+            pos[0] += 1
     elif "home" in loc:
         print "Okay, back where we started.\n"
-        pos[0] = 0
-        pos[1] = 0
+        pos = [0, 0]
     else:
         print "I don't think you can move there.\n"
-    xy = open("ZorkMap.txt", 'w')
-    pos = map(str, pos)
-    for posit in pos:
-        xy.write(posit + '\n')
-    xy.close()
-    spidey = open("ZorkBoss.txt", 'r').read(1)
-    #spidey = spider.read()
-    if pos == ['1', '2'] and spidey == '1':
+    if pos == [1, 2] and spidey == '1':
         fight("spider", 0)
+    elif pos == [2, 4] and snakey == '1':
+        fight("snake", 0)
     else:
         pass
+    return pos
 
 #see where you are or what you have
 def check(x):
     if "inv" in x:
-        with open("ZorkInv.txt", 'r') as inv:
-            items = [line.strip() for line in inv]
         for i in items:
             print i
-        print '\n'
     elif "map" in x:
-        with open("ZorkMap.txt", 'r+') as xy:
-            pos = [line.strip() for line in xy]
         print pos
     else:
         print "See inventory (inv) or current position (map)?"
@@ -110,6 +134,8 @@ def check(x):
 
 #write a couple fight sequences. use a for loop to iterate on chances the player has to examine. for example, they start with 4 moves and if they choose to examine the monster, they are reduced to 3 moves. but the examine will hopefully tell them how to win. if they use the wrong item on the monster - auto-lose?
 def fight(atk, i):
+    global spidey
+    global snakey
     if atk == "spider":
         print "As you round the next corner, your progress is halted by a humongous spider!\nVenom drips from its mandibles, as though salivating at the sight of you!\nYou've probably only got a few seconds before it gets you,\nso you'd better make them count! What do you do?\n"
         k = 3
@@ -130,10 +156,7 @@ def fight(atk, i):
                 if "torch" in mot[4:] and "torch" in items:
                     print "You brandish your torch boldly and drive the evil monster back! Good job!\n"
                     print "Your score goes up by 1.\n"
-                    spider = open("ZorkBoss.txt", 'r+b')
-                    #spider.seek(0)
-                    spider.write('0')
-                    spider.close()
+                    spidey = '0'
                     main()
                 elif "torch" in mot[4:] and not "torch" in items:
                     print "You don't have a torch! You'd better find one!\nTry to escape the monster so you can go look!"
@@ -160,11 +183,39 @@ def fight(atk, i):
         lose()
     else:
         main()
+
 #save and quit
 def save():
+    global pos
+    global items
+    global bosstxt
+    global spidey
+    global snakey
     really = raw_input("Save and quit? Y/N ").lower()
     if really == "y":
-        print "Come back soon!\n"
+        print "Come back soon!"
+        #write current position back to txt file
+        xy = open("ZorkMap.txt", 'w')
+        pos = map(str, pos)
+        for posit in pos:
+            xy.write(posit + '\n')
+        xy.close()
+        #write current inventory list back to txt file
+        yz = open("ZorkInv.txt", 'w')
+        yz.write('\n'.join(items))
+        yz.close()
+        #update bosstxt array with current boss status
+        for i in bosstxt:
+            if i[0] == 'spider:':
+                i[1] = spidey
+            elif i[0] == 'snake:':
+                i[1] = snakey
+            else:
+                pass
+        #write current boss status back to txt file
+        with open("ZorkBoss.txt", 'w') as zz:
+            for row in bosstxt:
+                zz.write(' '.join(row) + '\n')
         exit(0)
     elif really == "n":
         main()
@@ -180,15 +231,15 @@ def lose():
     y = open("ZorkInv.txt", 'w')
     y.truncate()
     z = open("ZorkBoss.txt", 'w')
-    z.write('1\n1')
+    #I need a better way to handle bosses than manually writing and searching and updating this list...
+    z.write('spider: 1\nsnake: 1')
     x.close()
     y.close()
     z.close()
     exit(0)
         
 def main():
-    #the_bosses = json.loads('{"spidey": 1, "snakey": 1}')
-    #print the_bosses["spidey"]
+    #continuous loop to keep the game going. each command calls a function, and when the function concludes the user is automatically returned to the start of main() - unless explicitly stated otherwise
     while True:
         prompt = '> '
         next = raw_input(prompt).lower()
@@ -200,7 +251,7 @@ def main():
         elif next[0:4] == "take":
             take(next[5:])
         elif next[0:4] == "move":
-            move(next[5:])
+            pos = move(next[5:])
         elif next[0:4] == "save":
             save()
         elif next[0:5] == "check":
