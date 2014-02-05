@@ -1,5 +1,6 @@
 from Tkinter import *
 import ZorkLore
+from os.path import exists
 #import json
 
 print "You've awoken in a dark and scary cave.\nYou can't quite remember how you got here, but you know that you were living in a small village on the edge of a forest.\nYou appear unharmed, and you cannot hear any immediate threats.\nBut you know that you won't stay safe for long.\nYou need to find something to defend yourself with, and get out of here!\n"
@@ -13,8 +14,10 @@ print "You can see which way you can go with the word look.\n"
 print "It's time to start your adventure! See if you can make it out of the cave alive, with your sanity intact!\n"
 print "What would you like to do first?\n"
 
+#on save, check for minimap.txt file. If exists, overwrite (with dungeon array). If not, create and write to. on quit, delete file.
+
 #global variables: pos (current position), items (current items), corridor (static map grid), spidey/snakey ('1' or '0' indicating boss status)
-with open("ZorkMap.txt", 'r') as xy:
+with open("ZorkPos.txt", 'r') as xy:
     pos = [line.strip() for line in xy]
     pos = map(int, pos)
 
@@ -29,7 +32,6 @@ with open("ZorkGrid.txt", 'r') as grid:
 bosstxt = []
 with open("ZorkBoss.txt", 'r') as boss:
     for line in boss:
-        #if line.startswith("spider"):
         bosstxt.append(line.split())
 for i in bosstxt:
     if i[0] == 'spider:':
@@ -43,19 +45,31 @@ for i in bosstxt:
 a = len(corridor)
 b = len(corridor[0])
 
-#create dungeon map initially filled with x's
-dungeon = [['x'] * b] * a
-
+#create dungeon map initially filled with ?'s
+if exists("ZorkMap.txt"):
+    dungeon = []
+    with open("ZorkMap.txt", 'r') as minimap:
+        for line in minimap:
+            dungeon.append(line.split())
+    print "Imported saved map file."
+else:
+    dungeon = [['?' for i in xrange(b)] for j in xrange(a)]
+    #starting (home) position
+    dungeon[4][2] = "1"
+    print "Created new, blank map."
 
 hintful = 0
 
 window = Tk()
-
-window.geometry('250x250+500+100')
-
+#window2 = Tk()
+display_grid = Text(window)
+display_grid.pack()
+#known_map = Text(window2)
+#known_map.pack()
+window.geometry('260x150+500+100')
 window.title('Minimap')
-
-
+#window2.geometry('260x150+500+100')
+#window2.title('Known map')
 
 def hint():
     global hintful
@@ -76,63 +90,72 @@ def help():
     "map: be amazed by my programming prowess and\nsee as much of the map as you have been or seen"]
         
 def look():
+    global dungeon
     print "It looks like you can go..."
     wall = False
     walkway = True
     if pos == [2, 4]:
         print "Home! Go north!\n"
     else:
+        #check north; try-catch error if looking off the map
         pos[1] += 1
         try:
-            corridor[(4-pos[1])][(2+pos[0])] == "1"
-        except:
-            wall = True
-        finally:    
             if corridor[(4-pos[1])][(2+pos[0])] == "0":
                 walkway = False
+            else:
+                walkway = True
+        except:
+            wall = True
+        finally:
             if wall == False and walkway == True:
                 print "North"
-                check_map(1)
+                dungeon[(4-pos[1])][(2+pos[0])] = "0"
             else:
                 pass
+        #check south
         pos[1] -= 2
         try:
-            corridor[(4-pos[1])][(2+pos[0])] == "1"
-        except:
-            wall = True
-        finally:    
             if corridor[(4-pos[1])][(2+pos[0])] == "0":
                 walkway = False
+            else:
+                walkway = True
+        except:
+            wall = True
+        finally:
             if wall == False and walkway == True:
                 print "South"
-                check_map(1)
+                dungeon[(4-pos[1])][(2+pos[0])] = "0"
             else:
                 pass
+        #check east
         pos[1] += 1
         pos[0] += 1
         try:
-            corridor[(4-pos[1])][(2+pos[0])] == "1"
-        except:
-            wall = True
-        finally:    
             if corridor[(4-pos[1])][(2+pos[0])] == "0":
                 walkway = False
+            else:
+                walkway = True
+        except:
+            wall = True
+        finally:
             if wall == False and walkway == True:
                 print "East"
-                check_map(1)
+                dungeon[(4-pos[1])][(2+pos[0])] = "0"
             else:
                 pass
+        #check west
         pos[0] -= 2
         try:
-            corridor[(4-pos[1])][(2+pos[0])] == "1"
-        except:
-            wall = True
-        finally:    
             if corridor[(4-pos[1])][(2+pos[0])] == "0":
                 walkway = False
+            else:
+                walkway = True
+        except:
+            wall = True
+        finally:
             if wall == False and walkway == True:
                 print "West"
-                check_map(1)
+                dungeon[(4-pos[1])][(2+pos[0])] = "0"
             else:
                 pass
         pos[0] += 1
@@ -184,10 +207,10 @@ def take(inv):
     else:
         print "I don't see that here.\n"
 
-#write a command to navigate the world. position stored in ZorkMap.txt upon save()
+#write a command to navigate the world. position stored in ZorkPos.txt upon save()
 def move(loc):
     global pos
-    global corridor
+    global dungeon
     global spidey
     global snakey
     wall = False
@@ -196,16 +219,18 @@ def move(loc):
     if "north" in loc:
         pos[1] += 1
         try:
-            corridor[(4-pos[1])][(2+pos[0])] == "1"
+            if corridor[(4-pos[1])][(2+pos[0])] == "0":
+                walkway = False
+            else:
+                walkway = True
         except:
             wall = True
             pos[1] -= 1
         finally:
-            if corridor[(4-pos[1])][(2+pos[0])] == "0":
-                walkway = False
             if wall == False and walkway == True:
                 print "You walk north.\n"
-                check_map(1)
+                dungeon[(4-pos[1])][(2+pos[0])] = "1"
+                dungeon[(5-pos[1])][(2+pos[0])] = "0"
             elif wall == False and walkway == False:
                 print "There's a wall there.\n"
             else:
@@ -213,16 +238,18 @@ def move(loc):
     elif "south" in loc:
         pos[1] -= 1
         try:
-            corridor[(4-pos[1])][(2+pos[0])] == "1"
+            if corridor[(4-pos[1])][(2+pos[0])] == "0":
+                walkway = False
+            else:
+                walkway = True
         except:
             wall = True
             pos[1] += 1
         finally:
-            if corridor[(4-pos[1])][(2+pos[0])] == "0":
-                walkway = False
             if wall == False and walkway == True:
                 print "You walk south.\n"
-                check_map(1)
+                dungeon[(4-pos[1])][(2+pos[0])] = "1"
+                dungeon[(3-pos[1])][(2+pos[0])] = "0"
             elif wall == False and walkway == False:
                 print "There's a wall there.\n"
             else:
@@ -230,16 +257,18 @@ def move(loc):
     elif "east" in loc:
         pos[0] += 1
         try:
-            corridor[(4-pos[1])][(2+pos[0])] == "1"
+            if corridor[(4-pos[1])][(2+pos[0])] == "0":
+                walkway = False
+            else:
+                walkway = True
         except:
             wall = True
             pos[0] -= 1
         finally:
-            if corridor[(4-pos[1])][(2+pos[0])] == "0":
-                walkway = False
             if wall == False and walkway == True:
                 print "You walk east.\n"
-                check_map(1)
+                dungeon[(4-pos[1])][(2+pos[0])] = "1"
+                dungeon[(4-pos[1])][(1+pos[0])] = "0"
             elif wall == False and walkway == False:
                 print "There's a wall there.\n"
             else:
@@ -247,16 +276,18 @@ def move(loc):
     elif "west" in loc:
         pos[0] -= 1
         try:
-            corridor[(4-pos[1])][(2+pos[0])] == "1"
+            if corridor[(4-pos[1])][(2+pos[0])] == "0":
+                walkway = False
+            else:
+                walkway = True
         except:
             wall = True
             pos[0] += 1
         finally:
-            if corridor[(4-pos[1])][(2+pos[0])] == "0":
-                walkway = False
             if wall == False and walkway == True:
                 print "You walk west.\n"
-                check_map(1)
+                dungeon[(4-pos[1])][(2+pos[0])] = "1"
+                dungeon[(4-pos[1])][(3+pos[0])] = "0"
             elif wall == False and walkway == False:
                 print "There's a wall there.\n"
             else:
@@ -296,12 +327,10 @@ def check(x):
         
 #display or update automap. called with 1 from move command, called with 2 from look command, called with 3 from check_map command.
 def check_map(show_user):
-    global dungeon
-    if show_user == 1:
-        dungeon[(4-pos[1])][(2+pos[0])] = '1'
-    #elif show_user == 2:
-    #    pass
-    elif show_user == 2:
+    #global dungeon
+    #if show_user == 1:
+    #    dungeon[(4-pos[1])][(2+pos[0])] = '1'
+    if show_user == 2:
         print "Map"
         for i in dungeon:
             print i
@@ -446,7 +475,7 @@ def save():
     if really == "y":
         print "Come back soon!"
         #write current position back to txt file
-        xy = open("ZorkMap.txt", 'w')
+        xy = open("ZorkPos.txt", 'w')
         pos = map(str, pos)
         for posit in pos:
             xy.write(posit + '\n')
@@ -467,6 +496,10 @@ def save():
         with open("ZorkBoss.txt", 'w') as zz:
             for row in bosstxt:
                 zz.write(' '.join(row) + '\n')
+        #overwrite minimap file
+        with open("ZorkMap.txt", 'w') as xy:
+            for row in dungeon:
+                xy.write(' '.join(row) + '\n')
         exit(0)
     elif really == "n":
         main()
@@ -477,13 +510,15 @@ def save():
 #loss state: reset text files; exit game without asking to save
 def lose(why):
     print why + '\n'
-    x = open("ZorkMap.txt", 'w')
+    x = open("ZorkPos.txt", 'w')
     x.write("0\n0")
     y = open("ZorkInv.txt", 'w')
     y.truncate()
     z = open("ZorkBoss.txt", 'w')
     #I need a better way to handle bosses than manually writing and searching and updating this list...
     z.write('spider: 1\nsnake: 1')
+    xx = open("ZorkMap.txt", 'w')
+    xx.remove()
     x.close()
     y.close()
     z.close()
@@ -502,15 +537,18 @@ def quit():
         
 def main():
     #continuous loop to keep the game going. each command calls a function, and when the function concludes the user is automatically returned to the start of main() - unless explicitly stated otherwise
-    display_grid = Frame(window)
-    display_grid.pack()
-    minimap = Button(display_grid, text = dungeon)
-    window.mainloop()
+    
+    #for i in corridor:
+    #    known_map.insert(END, i)
 
     while True:
+        display_grid.delete(1.0, END)
+        for i in dungeon:
+            display_grid.insert(END, i)
+
         prompt = '> '
         next = raw_input(prompt).lower()
-        print next
+
         if next[0:8] == "remember":
             remember(next[9:])
         elif next[0] == "x":
@@ -535,7 +573,7 @@ def main():
             quit()
         elif next == "whoami" or next == "who am i":
             remember('myself')
-        elif next == "whereami" or "where am i":
+        elif next == "whereami" or next == "where am i":
             check('map')
             look()
         elif next[0:3] == "map":
