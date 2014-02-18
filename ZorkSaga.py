@@ -1,22 +1,21 @@
 from Tkinter import *
-import ZorkLore
+#import ZorkLore
 from os.path import exists
-#import json
 
+def create_vars():
+    pass
 print "You've awoken in a dark and scary cave.\nYou can't quite remember how you got here, but you know that you were living in a small village on the edge of a forest.\nYou appear unharmed, and you cannot hear any immediate threats.\nBut you know that you won't stay safe for long.\nYou need to find something to defend yourself with, and get out of here!\n"
 print "You have a few options at your disposal in this quest.\n"
 print "You can remember some things from your past with the word remember."
 print "You can inspect something closer with the letter x (for examine)."
-print "You can move around with the word go."
+print "You can move around with the word go or move."
 print "You can acquire items with the word take."
 print "You can check where you are or what you have with the word check."
 print "You can see which way you can go with the word look.\n"
 print "It's time to start your adventure! See if you can make it out of the cave alive, with your sanity intact!\n"
 print "What would you like to do first?\n"
 
-#on save, check for minimap.txt file. If exists, overwrite (with dungeon array). If not, create and write to. on quit, delete file.
-
-#global variables: pos (current position), items (current items), corridor (static map grid), spidey/snakey ('1' or '0' indicating boss status)
+#global variables: pos (current position), items (current items), corridor (static map grid), dungeon (dynamic map grid), spidey/snakey ('1' or '0' indicating boss status)
 with open("ZorkPos.txt", 'r') as xy:
     pos = [line.strip() for line in xy]
     pos = map(int, pos)
@@ -46,7 +45,8 @@ a = len(corridor)
 b = len(corridor[0])
 
 #create dungeon map initially filled with ?'s
-if exists("ZorkMap.txt"):
+mini = open("ZorkMap.txt").read()
+if len(mini) > 0:
     dungeon = []
     with open("ZorkMap.txt", 'r') as minimap:
         for line in minimap:
@@ -71,6 +71,10 @@ window.title('Minimap')
 #window2.geometry('260x150+500+100')
 #window2.title('Known map')
 
+#create array that has a description of each room that the player can examine. use pos[][] to lookup that particular description.
+
+#descriptions = [['','','','','After you defeated that snake and it slithered off, you see that it was 
+
 def hint():
     global hintful
     hints = ['Try examining the cave!', 'Try remembering yourself!', 'Better find a torch in this dark cave!']
@@ -79,16 +83,32 @@ def hint():
     if hintful == 3:
         hintful = 0
         
-def help():
-    helpful = ["List of commands:",
-    "go: moves you around. 'go north' or 'move north' are acceptable.",
-    "look: see where you can go. you are in a x-, y-coord grid, and move within that plane.",
-    "x: examine something - type a word after x for something specific, or just x for a list of what is around you.",
-    "take: pick something up if it is near you",
-    "remember: remember something that may be useful. history of the place you're in or your own strengths/weaknesses.",
-    "i: check the items you are holding (inv)."
-    "map: be amazed by my programming prowess and\nsee as much of the map as you have been or seen"]
-        
+def help(i):
+    helpful = {'go': "moves you around. 'go north' or 'move north' are acceptable.",
+    'look': "see where you can go. you are in a x-, y-coord grid, and move within that plane.",
+    'x': "examine something - type a word after x for something specific, or just x for a list of what is around you.",
+    'take': "pick something up if it is near you",
+    'remember': "remember something that may be useful.\nhistory of the place you're in or your own strengths/weaknesses.",
+    'i': "check the items you are holding (inv).",
+    'map': "be amazed by my programming prowess and\nsee as much of the map as you have been or seen",
+    'use': "You may need to use the things you find down here..."}
+    
+    if i != 0:
+        if i in helpful:
+            print i + ":"
+            print helpful[i]
+            print '\n'
+        else:
+            print "Sorry, I don't think that's a possible command! Try one of these:"
+            for j in helpful:
+                print j
+            print '\n'
+    else:
+        print "Here are a list of commands.\nFor help with a specific command, type 'help [command]' without punctuation."
+        for j in helpful:
+            print j
+        print '\n'
+    
 def look():
     global dungeon
     print "It looks like you can go..."
@@ -98,7 +118,10 @@ def look():
         print "Home! Go north!\n"
     else:
         #check north; try-catch error if looking off the map
+        looking = "North"
         pos[1] += 1
+        if pos == [-1, 1] and not "torch" in items:
+            print "Hey, there's a torch %s of you." % looking
         try:
             if corridor[(4-pos[1])][(2+pos[0])] == "0":
                 walkway = False
@@ -108,12 +131,15 @@ def look():
             wall = True
         finally:
             if wall == False and walkway == True:
-                print "North"
+                print looking
                 dungeon[(4-pos[1])][(2+pos[0])] = "0"
             else:
                 pass
         #check south
+        looking = "South"
         pos[1] -= 2
+        if pos == [-1, 1] and not "torch" in items:
+            print "Hey, there's a torch %s of you." % looking
         try:
             if corridor[(4-pos[1])][(2+pos[0])] == "0":
                 walkway = False
@@ -123,13 +149,16 @@ def look():
             wall = True
         finally:
             if wall == False and walkway == True:
-                print "South"
+                print looking
                 dungeon[(4-pos[1])][(2+pos[0])] = "0"
             else:
                 pass
         #check east
         pos[1] += 1
         pos[0] += 1
+        looking = "East"
+        if pos == [-1, 1] and not "torch" in items:
+            print "Hey, there's a torch %s of you." % looking
         try:
             if corridor[(4-pos[1])][(2+pos[0])] == "0":
                 walkway = False
@@ -139,12 +168,15 @@ def look():
             wall = True
         finally:
             if wall == False and walkway == True:
-                print "East"
+                print looking
                 dungeon[(4-pos[1])][(2+pos[0])] = "0"
             else:
                 pass
         #check west
         pos[0] -= 2
+        looking = "West"
+        if pos == [-1, 1] and not "torch" in items:
+            print "Hey, there's a torch %s of you." % looking
         try:
             if corridor[(4-pos[1])][(2+pos[0])] == "0":
                 walkway = False
@@ -154,7 +186,7 @@ def look():
             wall = True
         finally:
             if wall == False and walkway == True:
-                print "West"
+                print looking
                 dungeon[(4-pos[1])][(2+pos[0])] = "0"
             else:
                 pass
@@ -233,6 +265,7 @@ def move(loc):
                 dungeon[(5-pos[1])][(2+pos[0])] = "0"
             elif wall == False and walkway == False:
                 print "There's a wall there.\n"
+                pos[1] -= 1
             else:
                 print "Invisible walls!\n"
     elif "south" in loc:
@@ -252,6 +285,7 @@ def move(loc):
                 dungeon[(3-pos[1])][(2+pos[0])] = "0"
             elif wall == False and walkway == False:
                 print "There's a wall there.\n"
+                pos[1] += 1
             else:
                 print "Invisible walls!\n"
     elif "east" in loc:
@@ -271,6 +305,7 @@ def move(loc):
                 dungeon[(4-pos[1])][(1+pos[0])] = "0"
             elif wall == False and walkway == False:
                 print "There's a wall there.\n"
+                pos[0] -= 1
             else:
                 print "Invisible walls!\n"
     elif "west" in loc:
@@ -290,6 +325,7 @@ def move(loc):
                 dungeon[(4-pos[1])][(3+pos[0])] = "0"
             elif wall == False and walkway == False:
                 print "There's a wall there.\n"
+                pos[0] += 1
             else:
                 print "Invisible walls!\n"
     elif "home" in loc:
@@ -298,17 +334,17 @@ def move(loc):
     else:
         print "I don't think you can move there.\n"
     if pos == [-1, 1] and not "torch" in items:
-        print "Hey, is that a torch?"
+        print "There's a torch on the cold stone floor."
     if pos == [1, 2] and spidey == '1':
         fight("spider", 0)
     elif pos == [2, 4] and snakey == '1':
         fight("snake", 0)
     elif pos == [2, 5] and (spidey == '0' and snakey == '0'):
         print "You escaped the cave! You really are something else.\nYou overcame both the substantial spider and the sinister snake.\nGreat job!\n"
-        lose("You win!")
+        lose("You win!", 0)
     elif pos == [2, 5] and not (spidey == '0' and snakey == '0'):
         print "You escaped the cave! But you can't help feeling like something evil is watching you go..."
-        lose("You win...?")
+        lose("You win...?", 0)
     else:
         pass
     return pos
@@ -371,14 +407,14 @@ def fight(atk, i):
                     fight("spider", k)
                 else:
                     print "The devil spider overwhelms you with its powerful legs.\nThe last thing you see is the dripping mandibles of the monster\n closing around your head.\n"
-                    lose("You lose!")
+                    lose("You lose!", 0)
             elif mot[0:4] == "move" or mot[0:2] == "go":
                 if mot[5:] == "south" or mot[3:] == "south":
                     move("south")
                     break
                 else:
                     print "Wrong way! The spider catches you and gobbles you up!"
-                    lose("You lose!")
+                    lose("You lose!", 0)
             else:
                 print "I don't think that will work now!\nTry examining the monster to see if it has a weakness!\n"
                 if k > 0:
@@ -388,7 +424,7 @@ def fight(atk, i):
                 i += 1
                 k -= 1
         print "As you waste time trying to think of what to do,the spider moves with incredible speed\nand snatches you up! You are dragged back to its lair as you slowly lose consciousness.\n"
-        lose("You lose!")
+        lose("You lose!", 0)
     elif atk == 'snake':
         score = 0
         print "With the exit in sight, your spirits rise!\nThe feeling is temporary, however, as your way is suddenly impeded by a hissing snake!\n"
@@ -457,7 +493,7 @@ def fight(atk, i):
             snakey = '2'
         elif score < 0:
             print "'Hahaha! You've failed my tessst! Now I shall eat your mind!' The snake then eats your mind."
-            lose("You lose!")
+            lose("You lose!", 0)
         elif score > 40:
             print "You punched that snake! You are awesome!\nIt went slithering off and you don't think it's going to come back for another taste."
             snakey = '0'
@@ -474,6 +510,7 @@ def save():
     really = raw_input("Save and quit? Y/N ").lower()
     if really == "y":
         print "Come back soon!"
+        print '\n'
         #write current position back to txt file
         xy = open("ZorkPos.txt", 'w')
         pos = map(str, pos)
@@ -508,7 +545,9 @@ def save():
         save()
         
 #loss state: reset text files; exit game without asking to save
-def lose(why):
+def lose(why, i):
+    global pos
+    global dungeon
     print why + '\n'
     x = open("ZorkPos.txt", 'w')
     x.write("0\n0")
@@ -518,11 +557,26 @@ def lose(why):
     #I need a better way to handle bosses than manually writing and searching and updating this list...
     z.write('spider: 1\nsnake: 1')
     xx = open("ZorkMap.txt", 'w')
-    xx.remove()
+    xx.truncate()
     x.close()
     y.close()
     z.close()
-    exit(0)
+    xx.close()
+    if i == 0:
+        exit(0)
+    else: 
+        pass
+
+#should set up a function to initialize all vars. this way I can call it to issue a new game. And have it be called before the while loop of main begins. have it only read the wall of text if it is a new game.        
+def new_game():
+    check = raw_input("Sure you want to start a new game? Y/N ").lower()
+    if check == 'y':
+        lose('Resetting all variables, and sending you back to start.', 1)
+    elif check == 'n':
+        pass
+    else:
+        print "Try again, friend.\n"
+        new_name()
     
 def quit():
     check = raw_input("Are you sure you want to quit without saving? Y/N ").lower()
@@ -530,7 +584,7 @@ def quit():
         print "Quitting without saving. Thanks for playing!\n"
         exit(0)
     elif check == 'n':
-        main()
+        pass
     else:
         print "Try again, friend.\n"
         quit()    
@@ -566,7 +620,10 @@ def main():
         elif next[0:4] == "hint":
             hint()
         elif next[0:4] == "help":
-            help()
+            if len(next) == 4:
+                help(0)
+            else:
+                help(next[5:])
         elif next[0:4] == "look":
             look()
         elif next[0:4] == "quit":
@@ -578,6 +635,10 @@ def main():
             look()
         elif next[0:3] == "map":
             check_map(2)
+        elif next == "restart":
+            new_game()
+        elif next[0:3] == "use":
+            print "I don't think you can use that right now."
         else:
             print "I don't know what that means!\n"
 
